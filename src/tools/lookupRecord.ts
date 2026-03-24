@@ -80,9 +80,22 @@ const lookupRecord = async (input: LookupRecordInput): Promise<LookupResult> => 
           case "path":
             searchResults = theApp.lookupRecordsWithPath("${value}", { in: searchDatabase });
             break;
-          case "url":
-            searchResults = theApp.lookupRecordsWithURL("${value}", { in: searchDatabase });
+          case "url": {
+            const urlValue = "${value}";
+            const dtPrefix = "x-devonthink-item://";
+            if (urlValue.startsWith(dtPrefix)) {
+              const identifier = decodeURIComponent(urlValue.substring(dtPrefix.length));
+              const record = theApp.getRecordWithUuid(identifier);
+              if (record && record.exists()) {
+                searchResults = [record];
+              } else {
+                searchResults = [];
+              }
+            } else {
+              searchResults = theApp.lookupRecordsWithURL(decodeURIComponent(urlValue), { in: searchDatabase });
+            }
             break;
+          }
           case "comment":
             searchResults = theApp.lookupRecordsWithComment("${value}", { in: searchDatabase });
             break;

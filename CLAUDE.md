@@ -73,6 +73,17 @@ npm run build         # Verify the build works
     - **`constants.ts`**: Shared AI constants and type definitions
   - **`base/`**: Base classes and utilities for tool development
     - **`DevonThinkTool.ts`**: Base class providing standardized tool creation with helper functions
+- **`tests/integration/`**: Vitest integration tests that run against a live DEVONthink instance
+  - **`helpers.ts`**: Shared test utilities (`jxa`, `createTestRecord`, `deleteRecord`, `sleep`, `getTestContext`)
+  - **`setup.ts`**: Global setup — creates a temporary database and `.eml` test file
+  - **`vitest.integration.config.ts`**: Vitest config for integration tests (run with `npx vitest --config tests/integration/vitest.integration.config.ts`)
+  - **`connectivity.test.ts`**: Verifies DEVONthink is running and accessible
+  - **`crud.test.ts`**: Create, read, update, delete operations
+  - **`identification.test.ts`**: UUID lookup, referenceURL lookup, email `.eml` import, `lookupRecord` URL handling, search by name
+  - **`organization.test.ts`**: Group content listing, record moving, tagging
+  - **`transformation.test.ts`**: Record conversion between formats
+  - **`network.test.ts`**: URL-based record creation
+  - **`ai.test.ts`**: AI-powered tool tests
 - **`src/utils/`**: Utility functions
   - **`escapeString.ts`**: Provides safe string escaping for JXA script interpolation
   - **`jxaHelpers.ts`**: JXA helper functions including version detection
@@ -89,7 +100,7 @@ The MCP server currently provides the following tools:
 5. **`get_record_properties`** - Get detailed metadata and properties for records
 6. **`get_record_by_identifier`** - Get a record using either UUID or ID+Database combination (recommended for specific record lookup)
 7. **`search`** - Perform text-based searches with various comparison options (now returns both ID and UUID)
-8. **`lookup_record`** - Look up records by filename, path, URL, tags, comment, or content hash (exact matches only, no wildcards)
+8. **`lookup_record`** - Look up records by filename, path, URL, tags, comment, or content hash (exact matches only, no wildcards). Supports `x-devonthink-item://` URLs with percent-encoded identifiers (e.g., email message-IDs)
 9. **`create_from_url`** - Create records from web URLs in multiple formats
 10. **`get_open_databases`** - Get a list of all currently open databases
 11. **`current_database`** - Get information about the currently active database
@@ -307,6 +318,14 @@ Update this `CLAUDE.md` file to:
 Refer to `docs/devonthink-javascript-2.md` for comprehensive documentation of available DEVONthink JXA commands and properties.
 
 ## Recent Improvements
+
+### URL Lookup Fix and Integration Tests (2025-09)
+- Fixed `lookup_record` to handle `x-devonthink-item://` URLs with percent-encoded identifiers (e.g., email message-IDs)
+- Previously, these URLs were passed directly to `lookupRecordsWithURL` which searches the `url` property, not `referenceURL` — returning 0 results
+- The fix detects `x-devonthink-item://` prefix, decodes the percent-encoded identifier, and uses `getRecordWithUuid` instead
+- Also decodes percent-encoded regular URLs before passing to `lookupRecordsWithURL`
+- Added comprehensive Vitest integration test suite (`tests/integration/`) covering: connectivity, CRUD, identification, organization, transformation, network, and AI tools
+- Integration tests run against a live DEVONthink instance using a temporary database
 
 ### AI-Powered Tools (2025-08)
 - Added comprehensive AI integration leveraging DEVONthink's native AI capabilities
