@@ -1,0 +1,19 @@
+[tasks.build]
+run = "npm run build"
+description = "Build the project"
+
+[tasks.test]
+run = "npm test"
+description = "Run unit tests"
+
+[tasks.type_check]
+run = "npm run type-check"
+description = "Run TypeScript type checking"
+
+[tasks.format]
+run = "npm run format"
+description = "Format the codebase with Biome"
+
+[tasks.format_check]
+run = "npm run format:check"
+description = "Check formatting with Biome"

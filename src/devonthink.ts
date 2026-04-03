@@ -11,6 +11,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { isRunningTool } from "./tools/isRunning.js";
 import { createRecordTool } from "./tools/createRecord.js";
+import { importFileTool } from "./tools/importFile.js";
 import { deleteRecordTool } from "./tools/deleteRecord.js";
 import { moveRecordTool } from "./tools/moveRecord.js";
 import { getRecordPropertiesTool } from "./tools/getRecordProperties.js";
@@ -56,6 +57,7 @@ export const createServer = async () => {
 	const tools: Tool[] = [
 		isRunningTool,
 		createRecordTool,
+		importFileTool,
 		deleteRecordTool,
 		moveRecordTool,
 		getRecordPropertiesTool,

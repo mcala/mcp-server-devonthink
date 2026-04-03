@@ -1,3 +1,4 @@
+- Repo: dvcrn/mcp-server-devonthink
 # Copilot Instructions
 
 - This project uses [Vitest](https://vitest.dev/) for testing.
@@ -44,6 +45,7 @@ npm run build         # Verify the build works
 - **`src/tools/`**: Directory containing all tool implementations
   - **`isRunning.ts`**: Defines the `is_running` tool, which checks if DEVONthink is active
   - **`createRecord.ts`**: Creates new records in DEVONthink
+  - **`importFile.ts`**: Imports existing files or folders into DEVONthink from a POSIX path or file URL
   - **`deleteRecord.ts`**: Deletes records from DEVONthink
   - **`moveRecord.ts`**: Moves records between groups
   - **`getRecordProperties.ts`**: Retrieves detailed properties and metadata for records
@@ -95,31 +97,32 @@ The MCP server currently provides the following tools:
 
 1. **`is_running`** - Check if DEVONthink is running
 2. **`create_record`** - Create new records (notes, bookmarks, groups) with specified properties
-3. **`delete_record`** - Delete records by ID, name, or path
-4. **`move_record`** - Move records between groups
-5. **`get_record_properties`** - Get detailed metadata and properties for records
-6. **`get_record_by_identifier`** - Get a record using either UUID or ID+Database combination (recommended for specific record lookup)
-7. **`search`** - Perform text-based searches with various comparison options (now returns both ID and UUID)
-8. **`lookup_record`** - Look up records by filename, path, URL, tags, comment, or content hash (exact matches only, no wildcards). Supports `x-devonthink-item://` URLs with percent-encoded identifiers (e.g., email message-IDs)
-9. **`create_from_url`** - Create records from web URLs in multiple formats
-10. **`get_open_databases`** - Get a list of all currently open databases
-11. **`current_database`** - Get information about the currently active database
-12. **`selected_records`** - Get information about currently selected records in DEVONthink
-13. **`list_group_content`** - Lists the content of a specific group
-14. **`get_record_content`** - Gets the content of a specific record
-15. **`rename_record`** - Renames a specific record
-16. **`add_tags`** - Adds tags to a specific record
-17. **`remove_tags`** - Removes tags from a specific record
-18. **`classify`** - Get AI-powered suggestions for organizing records
-19. **`compare`** - Find similar records or compare two specific records
-20. **`replicate_record`** - Replicate records within the same database (creates linked references)
-21. **`duplicate_record`** - Duplicate records to any database (creates independent copies)
-22. **`convert_record`** - Convert records to different formats (plain text, rich text, markdown, HTML, PDF, etc.)
-23. **`update_record_content`** - Update the content of existing records while preserving UUID and metadata
-24. **`ask_ai_about_documents`** - Ask AI questions about specific documents for analysis, comparison, or extraction
-25. **`check_ai_health`** - Check if DEVONthink's AI services are available and working properly
-26. **`create_summary_document`** - Create AI-generated summaries from multiple documents
-27. **`get_ai_tool_documentation`** - Get detailed documentation for AI tools including examples and use cases
+3. **`import_file`** - Import an existing file or folder into DEVONthink from a POSIX path or file URL
+4. **`delete_record`** - Delete records by ID, name, or path
+5. **`move_record`** - Move records between groups
+6. **`get_record_properties`** - Get detailed metadata and properties for records
+7. **`get_record_by_identifier`** - Get a record using either UUID or ID+Database combination (recommended for specific record lookup)
+8. **`search`** - Perform text-based searches with various comparison options (now returns both ID and UUID)
+9. **`lookup_record`** - Look up records by filename, path, URL, tags, comment, or content hash (exact matches only, no wildcards). Supports `x-devonthink-item://` URLs with percent-encoded identifiers (e.g., email message-IDs)
+10. **`create_from_url`** - Create records from web URLs in multiple formats
+11. **`get_open_databases`** - Get a list of all currently open databases
+12. **`current_database`** - Get information about the currently active database
+13. **`selected_records`** - Get information about currently selected records in DEVONthink
+14. **`list_group_content`** - Lists the content of a specific group
+15. **`get_record_content`** - Gets the content of a specific record
+16. **`rename_record`** - Renames a specific record
+17. **`add_tags`** - Adds tags to a specific record
+18. **`remove_tags`** - Removes tags from a specific record
+19. **`classify`** - Get AI-powered suggestions for organizing records
+20. **`compare`** - Find similar records or compare two specific records
+21. **`replicate_record`** - Replicate records within the same database (creates linked references)
+22. **`duplicate_record`** - Duplicate records to any database (creates independent copies)
+23. **`convert_record`** - Convert records to different formats (plain text, rich text, markdown, HTML, PDF, etc.)
+24. **`update_record_content`** - Update the content of existing records while preserving UUID and metadata
+25. **`ask_ai_about_documents`** - Ask AI questions about specific documents for analysis, comparison, or extraction
+26. **`check_ai_health`** - Check if DEVONthink's AI services are available and working properly
+27. **`create_summary_document`** - Create AI-generated summaries from multiple documents
+28. **`get_ai_tool_documentation`** - Get detailed documentation for AI tools including examples and use cases
 
 ## Adding New Tools
 
@@ -318,6 +321,11 @@ Update this `CLAUDE.md` file to:
 Refer to `docs/devonthink-javascript-2.md` for comprehensive documentation of available DEVONthink JXA commands and properties.
 
 ## Recent Improvements
+
+### File Import Tool (2026-04)
+- Added `import_file` to import existing files or folders with DEVONthink's native `import path` AppleScript/JXA command
+- The tool defaults to the global Inbox when no destination is provided and accepts a destination group UUID or database override for explicit placement
+- This is distinct from `create_record`, which creates DEVONthink-native records and does not ingest an existing file from disk
 
 ### URL Lookup Fix and Integration Tests (2025-09)
 - Fixed `lookup_record` to handle `x-devonthink-item://` URLs with percent-encoded identifiers (e.g., email message-IDs)
