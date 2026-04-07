@@ -2,6 +2,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { Tool, ToolSchema } from "@modelcontextprotocol/sdk/types.js";
 import { executeJxa } from "../applescript/execute.js";
+import { escapeStringForJXA, isJXASafeString } from "../utils/escapeString.js";
 
 const ToolInputSchema = ToolSchema.shape.inputSchema;
 type ToolInput = z.infer<typeof ToolInputSchema>;
@@ -9,7 +10,7 @@ type ToolInput = z.infer<typeof ToolInputSchema>;
 const LookupRecordSchema = z
 	.object({
 		lookupType: z
-			.enum(["filename", "path", "url", "tags", "comment", "contentHash"])
+			.enum(["filename", "path", "url", "tags", "comment", "contentHash", "customMetadata"])
 			.describe("Type of lookup to perform"),
 		value: z.string().describe("Value to search for"),
 		tags: z.array(z.string()).optional().describe("Tags to search for (for lookupType 'tags')"),
@@ -17,10 +18,34 @@ const LookupRecordSchema = z
 			.boolean()
 			.optional()
 			.describe("Match any tag instead of all (for lookupType 'tags')"),
+		customMetadataField: z
+			.string()
+			.optional()
+			.describe(
+				"Custom metadata field name without 'md' prefix (for lookupType 'customMetadata')",
+			),
+		customMetadataValue: z
+			.union([z.string(), z.number(), z.boolean()])
+			.optional()
+			.describe("Value to match (for lookupType 'customMetadata')"),
 		databaseName: z.string().optional().describe("Database to search in (optional)"),
 		limit: z.number().optional().describe("Maximum results to return (optional)"),
 	})
-	.strict();
+	.strict()
+	.refine(
+		(data) => {
+			if (data.lookupType === "customMetadata") {
+				return (
+					data.customMetadataField !== undefined && data.customMetadataValue !== undefined
+				);
+			}
+			return true;
+		},
+		{
+			message:
+				"customMetadataField and customMetadataValue are required when lookupType is 'customMetadata'",
+		},
+	);
 
 type LookupRecordInput = z.infer<typeof LookupRecordSchema>;
 
@@ -45,7 +70,21 @@ interface LookupResult {
 }
 
 const lookupRecord = async (input: LookupRecordInput): Promise<LookupResult> => {
-	const { lookupType, value, tags, matchAnyTag, databaseName, limit = 50 } = input;
+	const {
+		lookupType,
+		value,
+		tags,
+		matchAnyTag,
+		customMetadataField,
+		customMetadataValue,
+		databaseName,
+		limit = 50,
+	} = input;
+
+	// Validate custom metadata inputs
+	if (customMetadataField && !isJXASafeString(customMetadataField)) {
+		return { success: false, error: "Custom metadata field name contains invalid characters" };
+	}
 
 	const script = `
     (() => {
@@ -113,6 +152,18 @@ const lookupRecord = async (input: LookupRecordInput): Promise<LookupResult> => 
             }
             searchResults = theApp.lookupRecordsWithTags(tagArray, tagOptions);
             break;
+          case "customMetadata": {
+            const fieldKey = ${customMetadataField ? `"${escapeStringForJXA(customMetadataField)}"` : '""'};
+            const internalKey = fieldKey.startsWith("md") ? fieldKey : "md" + fieldKey.toLowerCase();
+            const cmValue = ${customMetadataValue !== undefined ? JSON.stringify(String(customMetadataValue)) : '""'};
+            const query = "mdkeyword:" + internalKey + "==" + cmValue;
+            const searchOpts = {};
+            if (searchDatabase) {
+              searchOpts["in"] = searchDatabase.root();
+            }
+            searchResults = theApp.search(query, searchOpts);
+            break;
+          }
           default:
             return JSON.stringify({
               success: false,
@@ -177,7 +228,7 @@ const lookupRecord = async (input: LookupRecordInput): Promise<LookupResult> => 
 export const lookupRecordTool: Tool = {
 	name: "lookup_record",
 	description:
-		'Look up records in DEVONthink by a specific attribute.\n\nExample:\n{\n  "lookupType": "filename",\n  "value": "report.pdf"\n}',
+		'Look up records in DEVONthink by a specific attribute. Supports custom metadata search.\n\nExamples:\n{\n  "lookupType": "filename",\n  "value": "report.pdf"\n}\n{\n  "lookupType": "customMetadata",\n  "value": "",\n  "customMetadataField": "citekey",\n  "customMetadataValue": "smith2024"\n}',
 	inputSchema: zodToJsonSchema(LookupRecordSchema) as ToolInput,
 	run: lookupRecord,
 };

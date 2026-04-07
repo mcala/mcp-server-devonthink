@@ -63,6 +63,7 @@ interface RecordProperties {
 	plainText?: string;
 	wordCount?: number;
 	characterCount?: number;
+	customMetadata?: Record<string, string | number | boolean>;
 }
 
 const getRecordProperties = async (input: GetRecordPropertiesInput): Promise<RecordProperties> => {
@@ -151,6 +152,31 @@ const getRecordProperties = async (input: GetRecordPropertiesInput): Promise<Rec
           wordCount: targetRecord.wordCount(),
           characterCount: targetRecord.characterCount()
         };
+
+        // Custom metadata
+        try {
+          const cmdRaw = targetRecord.customMetaData();
+          if (cmdRaw && typeof cmdRaw === "object") {
+            const cmd = {};
+            const keys = Object.keys(cmdRaw);
+            for (let i = 0; i < keys.length; i++) {
+              const k = keys[i];
+              const value = cmdRaw[k];
+              if (value === null || value === undefined || value === "") continue;
+              const publicKey = k.startsWith("md") ? k.slice(2) : k;
+              if (value instanceof Date) {
+                cmd[publicKey] = value.toISOString();
+              } else {
+                cmd[publicKey] = value;
+              }
+            }
+            if (Object.keys(cmd).length > 0) {
+              properties.customMetadata = cmd;
+            }
+          }
+        } catch (e) {
+          // customMetaData() may not be available on all record subtypes — ignore
+        }
 
         // Add optional exclusion flags if available on this record type
         try { if (targetRecord.excludeFromChat && targetRecord.excludeFromChat() !== undefined) { properties.excludeFromChat = targetRecord.excludeFromChat(); } } catch (e) {}

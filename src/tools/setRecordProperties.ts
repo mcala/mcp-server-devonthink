@@ -31,6 +31,13 @@ const SetRecordPropertiesSchema = z
 		excludeFromSeeAlso: z.boolean().optional(),
 		excludeFromTagging: z.boolean().optional().describe("Only applicable to groups"),
 		excludeFromWikiLinking: z.boolean().optional(),
+		customMetadata: z
+			.record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+			.optional()
+			.describe(
+				"Set custom metadata fields. Keys are field names (without 'md' prefix). " +
+					"Pass null as a value to clear a field. Unknown keys go to 'skipped' in the response.",
+			),
 	})
 	.strict()
 	.refine(
@@ -68,6 +75,7 @@ const setRecordProperties = async (
 		excludeFromSeeAlso,
 		excludeFromTagging,
 		excludeFromWikiLinking,
+		customMetadata,
 	} = input;
 
 	// Validate string inputs
@@ -172,6 +180,33 @@ const setRecordProperties = async (
 		}
         ${excludeFromWikiLinking !== undefined ? `if (rec.excludeFromWikiLinking !== undefined) { setIfProvided("excludeFromWikiLinking", ${excludeFromWikiLinking}); } else { skipped.push("excludeFromWikiLinking: not available"); }` : ""}
 
+        // Custom metadata
+        ${
+			customMetadata !== undefined
+				? `
+          (function() {
+            const incoming = ${JSON.stringify(customMetadata)};
+            const incomingKeys = Object.keys(incoming);
+            for (let i = 0; i < incomingKeys.length; i++) {
+              const rawKey = incomingKeys[i];
+              const fieldName = rawKey.startsWith("md") ? rawKey.slice(2) : rawKey.toLowerCase();
+              const value = incoming[rawKey];
+              try {
+                if (value === null) {
+                  theApp.addCustomMetaData("", { for: fieldName, to: rec });
+                } else {
+                  theApp.addCustomMetaData(value, { for: fieldName, to: rec });
+                }
+                updated.push("customMetadata." + fieldName);
+              } catch (e) {
+                skipped.push("customMetadata." + rawKey + ": " + e.toString());
+              }
+            }
+          })();
+        `
+				: ""
+		}
+
         // Build response
         const res = {};
         res["success"] = true;
@@ -196,7 +231,7 @@ const setRecordProperties = async (
 export const setRecordPropertiesTool: Tool = {
 	name: "set_record_properties",
 	description:
-		'Set properties on a DEVONthink record (comment, flag, locked, exclude* flags).\n\nExample:\n{\n  "uuid": "1234-5678-90AB-CDEF",\n  "comment": "Updated by tool",\n  "flag": true,\n  "locked": true,\n  "excludeFromChat": true\n}',
+		'Set properties on a DEVONthink record (comment, flag, locked, exclude* flags, custom metadata).\n\nExample:\n{\n  "uuid": "1234-5678-90AB-CDEF",\n  "comment": "Updated by tool",\n  "flag": true,\n  "customMetadata": { "citekey": "smith2024", "reviewed": true }\n}',
 	inputSchema: zodToJsonSchema(SetRecordPropertiesSchema) as ToolInput,
 	run: setRecordProperties,
 };
